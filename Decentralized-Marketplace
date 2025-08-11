@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Marketplace {
+    struct Item {
+        uint256 id;
+        address payable seller;
+        string name;
+        uint256 price;
+        bool sold;
+    }
+
+    uint256 public itemCount;
+    mapping(uint256 => Item) public items;
+
+    event ItemListed(uint256 id, address seller, string name, uint256 price);
+    event ItemPurchased(uint256 id, address buyer, uint256 price);
+
+    // List an item for sale
+    function listItem(string memory _name, uint256 _price) public {
+        require(_price > 0, "Price must be greater than zero");
+
+        itemCount++;
+        items[itemCount] = Item(itemCount, payable(msg.sender), _name, _price, false);
+
+        emit ItemListed(itemCount, msg.sender, _name, _price);
+    }
+
+    // Purchase an item
+    function purchaseItem(uint256 _id) public payable {
+        Item storage item = items[_id];
+        require(_id > 0 && _id <= itemCount, "Item does not exist");
+        require(msg.value == item.price, "Incorrect payment");
+        require(!item.sold, "Item already sold");
+        require(item.seller != msg.sender, "Seller cannot buy their own item");
+
+        item.seller.transfer(msg.value);
+        item.sold = true;
+
+        emit ItemPurchased(_id, msg.sender, item.price);
+    }
+
+    // Get details of an item
+    function getItem(uint256 _id) public view returns (uint256, address, string memory, uint256, bool) {
+        Item memory item = items[_id];
+        return (item.id, item.seller, item.name, item.price, item.sold);
+    }
+}
